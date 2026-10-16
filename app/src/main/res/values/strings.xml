@@ -1,0 +1,166 @@
+<resources>
+    <string name="app_name">TyguarNotes</string>
+    <string name="action_logout">Sair</string>
+    <string name="action_settings">Configurações</string>
+    <string name="action_refresh">Atualizar</string>
+
+    <!-- Strings used for fragments for navigation -->
+    <string name="list_notes_fragment_label">Notas</string>
+    <string name="note_fragment_label">Nota</string>
+    <string name="settings_fragment_label">Configurações</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Peladas</string>
+    <string name="title_ranking">Ranking</string>
+    <string name="title_notifications">Notificações</string>
+    <string name="sign_in_with_google">Entrar com Google</string>
+    <string name="logout">Sair</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancelar</string>
+
+    <string name="name">Nome</string>
+
+    <string name="position">Posição</string>
+
+    <string name="finish_user_info">Finalizar cadastro</string>
+    <string name="finish">Finalizar</string>
+
+    <string name="create_note">Criar</string>
+    <string name="update_note">Atualizar</string>
+    <string name="delete">Remover</string>
+    <string name="delete_note_question">Deletar nota selecionada?</string>
+    <string name="logout_question">Desejar sair?</string>
+
+    <string name="load_failed">Falha ao carregar dados.</string>
+    <string name="search">Procurar notas</string>
+
+    <string name="select_image">Selecionar imagem</string>
+    <string name="remove_image">Remover imagem</string>
+    <string name="open_in_browser">Abrir no navegador</string>
+    <string name="open_incognito">Abrir em anônima</string>
+    <string name="copy_link">Copiar link</string>
+    <string name="link_copied">Link copiado!</string>
+    <string name="share">Compartilhar</string>
+    <string name="updating">Atualizando…</string>
+
+    <!-- Note lock -->
+    <string name="lock_note">Bloquear nota</string>
+    <string name="unlock_note">Desbloquear nota</string>
+    <string name="lock_folder">Bloquear pasta</string>
+    <string name="unlock_folder">Desbloquear pasta</string>
+    <string name="enter_password">Digite a senha (4–6 dígitos)</string>
+    <string name="wrong_password">Senha incorreta</string>
+    <string name="note_locked">Nota bloqueada!</string>
+    <string name="note_unlocked">Nota desbloqueada!</string>
+    <string name="confirm">Confirmar</string>
+    <string name="password_min_error">Mínimo 4 dígitos</string>
+    <string name="confirm_new_password">Confirme a senha</string>
+    <string name="password_mismatch">As senhas não coincidem</string>
+
+    <!-- Autenticação-->
+    <string name="biometric_desc">Desbloquear as notas</string>
+    <string name="use_biometric">Bloqueio por biometria</string>
+    <string name="biometric_not_available">Este dispositivo não suporta biometria</string>
+    <string name="use_device_credentials">Bloqueio por PIN ou Padrão</string>
+    <string name="app_locked">App bloqueado</string>
+    <string name="try_again">Tentar novamente</string>
+
+    <!-- Errors -->
+    <string name="biometric_error">Falha na autenticação</string>
+    <string name="upload_error">Upload error</string>
+
+    <!-- Autenticação-->
+    <string name="deleted_note_message">Nota apagada!</string>
+    <string name="title_activity_view_image">ViewImageActivity</string>
+
+    <!-- Drawer / Gallery -->
+    <string name="menu">Menu</string>
+    <string name="gallery">Galeria</string>
+    <string name="notes">Notas</string>
+    <string name="add_image">Adicionar imagem</string>
+    <string name="new_folder">Nova pasta</string>
+    <string name="folder_name">Nome da pasta</string>
+    <string name="empty_gallery">Galeria vazia</string>
+    <string name="no_subfolders">Nenhuma subpasta</string>
+    <string name="root_folder">Raiz</string>
+    <string name="rename">Renomear</string>
+    <string name="folder_locked">Pasta bloqueada!</string>
+    <string name="folder_unlocked">Pasta desbloqueada!</string>
+    <string name="save_here">Salvar aqui</string>
+    <string name="choose_folder">Escolher pasta</string>
+    <string name="delete_image_question">Deseja deletar esta imagem?</string>
+    <string name="delete_item_question">Deseja deletar este item?</string>
+
+    <!-- Documents -->
+    <string name="documents">Documentos</string>
+    <string name="add_document">Adicionar documento</string>
+    <string name="empty_documents">Nenhum documento</string>
+    <string name="sort_by_type">Ordenar por tipo</string>
+    <string name="sort_by_date">Ordenar por data</string>
+    <string name="sort_by_name">Ordenar por nome</string>
+    <string name="sort_by_modified">Ordenar por modificação</string>
+
+    <!-- Preview -->
+    <string name="preview">Pré-visualização</string>
+    <string name="file_name">Nome do arquivo</string>
+    <string name="save">Salvar</string>
+    <string name="move_to_folder">Mover para pasta</string>
+    <string name="sync_status">Sincronização com o Google Drive</string>
+    <string name="sync_status_synced">Tudo sincronizado com o Google Drive.</string>
+    <string name="sync_status_syncing">Sincronizando com o Google Drive…</string>
+    <string name="sync_status_waiting_first">Aguardando a primeira sincronização.</string>
+    <string name="sync_status_offline">Sem conexão com o Google Drive. A sincronização continua automaticamente quando houver rede.</string>
+    <string name="sync_status_failed">Não foi possível sincronizar. Uma nova tentativa será feita automaticamente.</string>
+    <string name="sync_status_auth_required">O acesso ao Google Drive foi perdido. Entre novamente para voltar a sincronizar.</string>
+    <string name="sync_last_synced_at">Última sincronização: %1$s</string>
+    <string name="sync_now">Sincronizar agora</string>
+    <string name="sign_in_again">Entrar novamente</string>
+    <plurals name="sync_pending_changes">
+        <item quantity="one">%1$d alteração aguardando sincronização.</item>
+        <item quantity="other">%1$d alterações aguardando sincronização.</item>
+    </plurals>
+    <string name="vault_create_title">Crie a senha do cofre</string>
+    <string name="vault_create_description">Suas notas, imagens e documentos são criptografados com esta senha antes de irem para o Google Drive. Ela será pedida em cada aparelho novo. Se você esquecer a senha, seus dados não poderão ser recuperados.</string>
+    <string name="vault_unlock_title">Digite a senha do cofre</string>
+    <string name="vault_unlock_description">Esta conta já tem um cofre. Digite a senha para acessar seus dados neste aparelho.</string>
+    <string name="vault_password">Senha do cofre</string>
+    <string name="vault_password_confirm">Confirme a senha do cofre</string>
+    <string name="vault_create">Criar cofre</string>
+    <string name="vault_unlock">Desbloquear</string>
+    <string name="app_version">Versão %1$s (%2$d)</string>
+    <string name="original_image_deleted">A imagem original foi removida do aparelho.</string>
+    <string name="original_image_kept">A imagem original continua na galeria do aparelho.</string>
+    <string name="original_image_not_removable">Não foi possível remover a imagem original automaticamente. Apague-a manualmente da galeria do aparelho.</string>
+    <string name="select_all">Selecionar tudo</string>
+    <string name="delete_folders_warning">As pastas selecionadas e todo o conteúdo delas também serão excluídos.</string>
+    <string name="selection_delete_locked">Destranque os itens trancados antes de excluí-los.</string>
+    <string name="selection_move_folders">Pastas não podem ser movidas. Desmarque as pastas para mover os demais itens.</string>
+    <plurals name="items_selected">
+        <item quantity="one">%1$d selecionado</item>
+        <item quantity="other">%1$d selecionados</item>
+    </plurals>
+    <plurals name="delete_items_question">
+        <item quantity="one">Excluir %1$d item?</item>
+        <item quantity="other">Excluir %1$d itens?</item>
+    </plurals>
+    <string name="storage_title">Armazenamento</string>
+    <string name="storage_app_drive">No Google Drive (TyguarNotes)</string>
+    <string name="storage_account">Conta Google</string>
+    <string name="storage_used_of_limit">%1$s de %2$s</string>
+    <string name="storage_account_note">O espaço da conta é compartilhado com Gmail e Google Fotos.</string>
+    <string name="storage_device">Neste aparelho</string>
+    <string name="storage_updated_at">Atualizado em %1$s</string>
+    <string name="storage_offline_since">Sem conexão. Valores de %1$s</string>
+    <string name="storage_unavailable">Sem conexão com o Google Drive.</string>
+    <string name="create_checklist">Nova checklist</string>
+    <string name="checklist_label">Checklist</string>
+    <string name="checklist_add_item">Adicionar item</string>
+    <string name="checklist_item_hint">Item</string>
+    <string name="checklist_remove_item">Remover item</string>
+    <string name="checklist_done_count">Concluídos (%1$d)</string>
+    <plurals name="checklist_more_items">
+        <item quantity="one">+%1$d item</item>
+        <item quantity="other">+%1$d itens</item>
+    </plurals>
+</resources>

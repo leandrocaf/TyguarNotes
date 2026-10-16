@@ -1,0 +1,36 @@
+# Android Build
+/build
+/captures
+*.iml
+.gradle
+/local.properties
+.externalNativeBuild
+.cxx
+
+# IDE - IntelliJ / Android Studio
+.idea/
+*.ipr
+*.iws
+
+# IDE - VS Code
+.vscode/
+
+# Binaries
+*.apk
+*.aar
+*.jar
+
+# Keystores (VERY IMPORTANT)
+*.jks
+*.keystore
+
+# Sensitive configuration (Firebase, etc)
+# Comentado caso queira versionar, mas recomendado ignorar em repositórios públicos
+# google-services.json
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db

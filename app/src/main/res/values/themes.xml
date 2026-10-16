@@ -1,0 +1,16 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.TyguarNotes" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="CustomSwitchStyle" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="android:thumbTint">@color/switch_selector</item> <!-- Cor do thumb (botão) -->
+        <item name="android:trackTint">@color/switch_selector</item> <!-- Cor da trilha quando o Switch está ativado -->
+        <item name="android:switchMinWidth">56dp</item> <!-- Largura mínima do Switch -->
+        <item name="android:switchPadding">16dp</item> <!-- Padding do Switch -->
+    </style>
+
+    <style name="Theme.TyguarNotes" parent="Base.Theme.TyguarNotes" />
+</resources>

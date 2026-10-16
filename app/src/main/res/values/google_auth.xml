@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- OAuth 2.0 "Web application" client ID from Google Cloud Console
+         (APIs & Services > Credentials). Used as serverClientId for Sign in with Google. -->
+    <string name="google_web_client_id" translatable="false">520200965912-q0fuh99s5t7ui0popspmg0ifdkk6rpqp.apps.googleusercontent.com</string>
+</resources>
