@@ -12,6 +12,12 @@ interface NotesRepository {
     suspend fun unlockNote(userEmail: String, noteId: String): Result<Unit>
     suspend fun moveNoteToFolder(userEmail: String, noteId: String, folderId: String): Result<Unit>
 
+    /** Sets (or, with a null time, clears) the reminder of several notes, leaving everything else as is. */
+    suspend fun setReminder(userEmail: String, noteIds: Collection<String>, reminderAt: Long?, reminderRepeat: String): Result<Unit>
+
+    /** Whether the note, or any folder above it, has a password. */
+    suspend fun isNoteProtected(userEmail: String, noteId: String): Boolean
+
     suspend fun getFolders(userEmail: String, parentId: String = ""): Result<List<NoteFolder>>
     suspend fun createFolder(userEmail: String, name: String, parentId: String = ""): Result<Unit>
     suspend fun deleteFolder(userEmail: String, folder: NoteFolder): Result<Unit>

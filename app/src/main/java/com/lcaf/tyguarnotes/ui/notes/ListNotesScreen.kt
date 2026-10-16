@@ -86,10 +86,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lcaf.tyguarnotes.ui.components.ClearSelectionOnFolderChange
 import com.lcaf.tyguarnotes.ui.components.DeleteSelectionDialog
+import com.lcaf.tyguarnotes.ui.components.ReminderEditorDialog
 import com.lcaf.tyguarnotes.ui.components.SecureAlertDialog
 import com.lcaf.tyguarnotes.ui.components.SelectionOverlay
 import com.lcaf.tyguarnotes.ui.components.SelectionTopAppBar
+import com.lcaf.tyguarnotes.ui.components.rememberReminderPermissionRequester
 import com.lcaf.tyguarnotes.ui.components.rememberSelectionState
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import com.lcaf.tyguarnotes.ui.sync.SyncIndicator
 import com.lcaf.tyguarnotes.R
 import com.lcaf.tyguarnotes.ui.components.AppDrawerContent
@@ -124,6 +127,8 @@ fun ListNotesScreen(
     val selection = rememberSelectionState()
     var moveTargetIds by remember { mutableStateOf<List<String>?>(null) }
     var showDeleteSelection by remember { mutableStateOf(false) }
+    var showSelectionReminder by remember { mutableStateOf(false) }
+    val ensureReminderPermissions = rememberReminderPermissionRequester()
     var isGridView by remember { mutableStateOf(settingsRepository.notesViewGrid) }
     var sortOrder by remember { mutableStateOf(
         try { NotesSortOrder.valueOf(settingsRepository.notesSortOrder) } catch (_: Exception) { NotesSortOrder.MODIFIED }
@@ -488,6 +493,30 @@ fun ListNotesScreen(
     // Selection keys match removingItemIds: "folder_<id>" for folders, the note id for notes.
     val selectedFolders = uiState.folders.filter { "folder_${it.id}" in selection }
     val selectedNotes = uiState.notes.filter { it.id in selection }
+    if (showSelectionReminder) {
+        // With one note the dialog starts from its current reminder; with several it starts fresh.
+        val only = selectedNotes.singleOrNull()
+        val ids = selectedNotes.map { it.id }
+        ReminderEditorDialog(
+            initialAt = only?.reminderAt,
+            initialRepeat = only?.reminderRepeat ?: ReminderRepeat.NONE,
+            onConfirm = { at, repeat ->
+                viewModel.setReminder(ids, at, repeat)
+                showSelectionReminder = false
+                selection.clear()
+                ensureReminderPermissions()
+            },
+            onRemove = if (selectedNotes.any { it.hasReminder }) {
+                {
+                    viewModel.setReminder(ids, null, ReminderRepeat.NONE)
+                    showSelectionReminder = false
+                    selection.clear()
+                }
+            } else null,
+            onDismiss = { showSelectionReminder = false }
+        )
+    }
+
     if (showDeleteSelection) {
         DeleteSelectionDialog(
             count = selection.count,
@@ -537,6 +566,9 @@ fun ListNotesScreen(
                         },
                         onMove = { moveTargetIds = selectedNotes.map { it.id } },
                         onDelete = { showDeleteSelection = true },
+                        onReminder = { showSelectionReminder = true },
+                        reminderBlockedReason = stringResource(R.string.selection_reminder_folders)
+                            .takeIf { selectedFolders.isNotEmpty() },
                         moveBlockedReason = stringResource(R.string.selection_move_folders)
                             .takeIf { selectedFolders.isNotEmpty() },
                         deleteBlockedReason = stringResource(R.string.selection_delete_locked)

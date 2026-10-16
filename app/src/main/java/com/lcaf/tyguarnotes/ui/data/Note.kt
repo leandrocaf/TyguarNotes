@@ -12,9 +12,13 @@ data class Note(
     var password: String = "",
     var parentId: String = "",
     var type: String = TYPE_TEXT,
-    var checklist: List<ChecklistItem> = emptyList()
+    var checklist: List<ChecklistItem> = emptyList(),
+    /** First (or only) time the reminder fires, epoch millis; null when the note has no reminder. */
+    var reminderAt: Long? = null,
+    var reminderRepeat: String = ReminderRepeat.NONE
 ) {
     val isChecklist: Boolean get() = type == TYPE_CHECKLIST
+    val hasReminder: Boolean get() = reminderAt != null
 
     companion object {
         const val TYPE_TEXT = "text"
@@ -27,3 +31,12 @@ data class ChecklistItem(
     val text: String = "",
     val checked: Boolean = false
 )
+
+object ReminderRepeat {
+    const val NONE = "none"
+    const val DAILY = "daily"
+    const val WEEKLY = "weekly"
+    const val MONTHLY = "monthly"
+
+    val all = listOf(NONE, DAILY, WEEKLY, MONTHLY)
+}

@@ -44,4 +44,9 @@ class SettingsRepository(context: Context) {
     var documentsSortOrder: String
         get() = prefs.getString("documents_sort_order", "CREATED") ?: "CREATED"
         set(value) { prefs.edit().putString("documents_sort_order", value).apply() }
+
+    /** Whether the user was already asked to allow exact alarms; asked once, never nagged. */
+    var exactAlarmPrompted: Boolean
+        get() = prefs.getBoolean("exact_alarm_prompted", false)
+        set(value) { prefs.edit().putBoolean("exact_alarm_prompted", value).apply() }
 }

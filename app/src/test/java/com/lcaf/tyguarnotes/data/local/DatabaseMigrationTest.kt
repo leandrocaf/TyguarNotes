@@ -35,7 +35,28 @@ class DatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun existingNotesGetNoReminderWhenMigratingToVersion4() {
+        helper.createDatabase(DB_V3, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO notes (id, title, description, image, password, parentId, createdAt, lastModification, updatedAt, pendingSync, deleted, type, checklist) " +
+                    "VALUES ('c1', 'Compras', '', '', '', '', 1, 2, 3, 0, 0, 'checklist', '[{\"id\":\"a\",\"text\":\"Leite\",\"checked\":false}]')"
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB_V3, 4, true).use { db ->
+            db.query("SELECT type, checklist, reminderAt, reminderRepeat FROM notes WHERE id = 'c1'").use { cursor ->
+                cursor.moveToFirst()
+                assertEquals("checklist", cursor.getString(0))
+                assertEquals("[{\"id\":\"a\",\"text\":\"Leite\",\"checked\":false}]", cursor.getString(1))
+                assertEquals(true, cursor.isNull(2))
+                assertEquals("none", cursor.getString(3))
+            }
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
+        const val DB_V3 = "migration-test-v3"
     }
 }

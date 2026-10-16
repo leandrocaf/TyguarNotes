@@ -16,6 +16,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getIncludingDeleted(id: String): NoteEntity?
 
+    @Query("SELECT * FROM notes WHERE reminderAt IS NOT NULL AND deleted = 0")
+    suspend fun getWithReminder(): List<NoteEntity>
+
     @Query("SELECT * FROM notes WHERE pendingSync = 1")
     suspend fun getPending(): List<NoteEntity>
 

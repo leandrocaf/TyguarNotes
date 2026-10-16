@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -18,7 +19,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -40,6 +43,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.lcaf.tyguarnotes.R
 
@@ -103,11 +108,16 @@ fun SelectionTopAppBar(
     onDelete: () -> Unit,
     moveBlockedReason: String? = null,
     deleteBlockedReason: String? = null,
+    onReminder: (() -> Unit)? = null,
+    reminderBlockedReason: String? = null,
     singleItemActions: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
     TopAppBar(
-        title = { Text(pluralStringResource(R.plurals.items_selected, selectedCount, selectedCount)) },
+        title = {
+            val spoken = pluralStringResource(R.plurals.items_selected, selectedCount, selectedCount)
+            Text(text = selectedCount.toString(), maxLines = 1, modifier = Modifier.semantics { contentDescription = spoken })
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -123,15 +133,26 @@ fun SelectionTopAppBar(
             IconButton(onClick = onSelectAll) {
                 Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.select_all))
             }
-            SelectionAction(Icons.Default.DriveFileMove, stringResource(R.string.move_to_folder), moveBlockedReason, onMove)
-            SelectionAction(Icons.Default.Delete, stringResource(R.string.delete), deleteBlockedReason, onDelete)
-            if (singleItemActions != null && selectedCount == 1) {
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.menu))
-                    }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            if (onReminder != null) {
+                SelectionAction(Icons.Default.Alarm, stringResource(R.string.reminder_title), reminderBlockedReason, onReminder)
+            }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.menu))
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    if (singleItemActions != null && selectedCount == 1) {
                         singleItemActions { showMenu = false }
+                        HorizontalDivider()
+                    }
+                    SelectionMenuItem(Icons.Default.DriveFileMove, stringResource(R.string.move_to_folder), moveBlockedReason) {
+                        showMenu = false
+                        onMove()
+                    }
+                    // Last and in red: it is the one to avoid tapping by accident.
+                    SelectionMenuItem(Icons.Default.Delete, stringResource(R.string.delete), deleteBlockedReason, destructive = true) {
+                        showMenu = false
+                        onDelete()
                     }
                 }
             }
@@ -184,5 +205,29 @@ fun DeleteSelectionDialog(count: Int, includesFolders: Boolean, onConfirm: () ->
         onDismiss = onDismiss,
         confirmText = stringResource(R.string.delete),
         dismissText = stringResource(R.string.cancel)
+    )
+}
+
+/** Menu entry that, when blocked, looks disabled but still explains why on tap. */
+@Composable
+private fun SelectionMenuItem(
+    icon: ImageVector,
+    label: String,
+    blockedReason: String?,
+    destructive: Boolean = false,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val color = when {
+        blockedReason != null -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        destructive -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    DropdownMenuItem(
+        text = { Text(label, color = color) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = color) },
+        onClick = {
+            if (blockedReason != null) Toast.makeText(context, blockedReason, Toast.LENGTH_LONG).show() else onClick()
+        }
     )
 }

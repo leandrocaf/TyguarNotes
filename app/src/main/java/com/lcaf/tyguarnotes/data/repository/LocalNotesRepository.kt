@@ -4,8 +4,10 @@ import com.lcaf.tyguarnotes.data.local.ChecklistCodec
 import com.lcaf.tyguarnotes.data.local.NoteEntity
 import com.lcaf.tyguarnotes.data.local.NoteFolderEntity
 import com.lcaf.tyguarnotes.data.local.UserStore
+import com.lcaf.tyguarnotes.data.local.isNoteProtected
 import com.lcaf.tyguarnotes.ui.data.Note
 import com.lcaf.tyguarnotes.ui.data.NoteFolder
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 
 class LocalNotesRepository(
     private val storeFor: (userEmail: String) -> UserStore
@@ -39,22 +41,27 @@ class LocalNotesRepository(
                     lastModification = now,
                     updatedAt = now,
                     type = note.type,
-                    checklist = ChecklistCodec.encode(note.checklist)
+                    checklist = ChecklistCodec.encode(note.checklist),
+                    reminderAt = note.reminderAt,
+                    reminderRepeat = note.reminderRepeat
                 )
             )
         } else {
             val existing = dao.get(note.id) ?: throw NoSuchElementException("Note not found")
+            // Updating never changes the folder: only moveNoteToFolder does, so a caller that
+            // lacks the folder cannot silently move the note to the root.
             dao.upsert(
                 existing.copy(
                     title = note.title,
                     description = note.description,
                     image = note.image,
-                    parentId = note.parentId,
                     lastModification = now,
                     updatedAt = now,
                     pendingSync = true,
                     type = note.type,
-                    checklist = ChecklistCodec.encode(note.checklist)
+                    checklist = ChecklistCodec.encode(note.checklist),
+                    reminderAt = note.reminderAt,
+                    reminderRepeat = note.reminderRepeat
                 )
             )
             if (note.image.isEmpty() && existing.image.isNotEmpty()) {
@@ -78,6 +85,24 @@ class LocalNotesRepository(
 
     override suspend fun moveNoteToFolder(userEmail: String, noteId: String, folderId: String): Result<Unit> =
         updateNote(userEmail, noteId) { it.copy(parentId = folderId) }
+
+    override suspend fun setReminder(
+        userEmail: String,
+        noteIds: Collection<String>,
+        reminderAt: Long?,
+        reminderRepeat: String
+    ): Result<Unit> = runCatching {
+        // Not an edit of the content: lastModification stays, so the list order does not jump.
+        val repeat = if (reminderAt == null) ReminderRepeat.NONE else reminderRepeat
+        noteIds.forEach { id ->
+            updateNote(userEmail, id) { it.copy(reminderAt = reminderAt, reminderRepeat = repeat) }.getOrThrow()
+        }
+    }
+
+    override suspend fun isNoteProtected(userEmail: String, noteId: String): Boolean {
+        val note = notes(userEmail).get(noteId) ?: return false
+        return storeFor(userEmail).db.isNoteProtected(note)
+    }
 
     override suspend fun getFolders(userEmail: String, parentId: String): Result<List<NoteFolder>> = runCatching {
         folders(userEmail).getByParent(parentId).map { it.toFolder() }

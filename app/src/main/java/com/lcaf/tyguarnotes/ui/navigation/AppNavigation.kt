@@ -59,6 +59,8 @@ fun AppNavigation(
     sharedText: String? = null,
     sharedImageBytes: ByteArray? = null,
     sharedImageUri: Uri? = null,
+    openNoteId: String? = null,
+    onOpenNoteConsumed: () -> Unit = {},
     onSharedImageConsumed: () -> Unit = {},
     sharedDocBytes: ByteArray? = null,
     sharedDocName: String? = null,
@@ -115,6 +117,17 @@ fun AppNavigation(
                 if (pendingSharedText != null) {
                     navController.navigate(Routes.noteDetail(""))
                 }
+            }
+
+            // A tapped reminder opens its note, unless the note (or its folder) has a PIN: that
+            // PIN is asked in the list and a link must not skip it.
+            LaunchedEffect(openNoteId) {
+                val noteId = openNoteId ?: return@LaunchedEffect
+                val email = Repositories.auth.currentUserEmail
+                val note = email?.let { Repositories.notes.getNote(it, noteId).getOrNull() }
+                val protected = email != null && Repositories.notes.isNoteProtected(email, noteId)
+                if (note != null && !protected) navController.navigate(Routes.noteDetail(noteId))
+                onOpenNoteConsumed()
             }
 
             ListNotesScreen(

@@ -10,6 +10,7 @@ import com.lcaf.tyguarnotes.data.repository.NotesRepository
 import com.lcaf.tyguarnotes.data.repository.Repositories
 import com.lcaf.tyguarnotes.ui.data.ChecklistItem
 import com.lcaf.tyguarnotes.ui.data.Note
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import com.lcaf.tyguarnotes.ui.util.Constants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,10 @@ data class NoteUiState(
     val type: String = Note.TYPE_TEXT,
     val checklist: List<ChecklistItem> = emptyList(),
     val initialChecklist: List<ChecklistItem> = emptyList(),
+    val reminderAt: Long? = null,
+    val reminderRepeat: String = ReminderRepeat.NONE,
+    val initialReminderAt: Long? = null,
+    val initialReminderRepeat: String = ReminderRepeat.NONE,
     // Item that should take keyboard focus (just added); cleared once focused.
     val focusItemId: String? = null
 ) {
@@ -76,6 +81,8 @@ class NoteDetailViewModel(
                 onSuccess = { note ->
                     _uiState.value = _uiState.value.copy(
                         noteId = note.id,
+                        // The editor is opened without the folder, so it must come from the note itself.
+                        parentId = note.parentId,
                         title = note.title,
                         description = note.description,
                         initialTitle = note.title,
@@ -85,6 +92,10 @@ class NoteDetailViewModel(
                         type = note.type,
                         checklist = note.checklist,
                         initialChecklist = note.checklist,
+                        reminderAt = note.reminderAt,
+                        reminderRepeat = note.reminderRepeat,
+                        initialReminderAt = note.reminderAt,
+                        initialReminderRepeat = note.reminderRepeat,
                         isNewNote = false,
                         isLoading = note.image.isNotEmpty()
                     )
@@ -147,6 +158,14 @@ class NoteDetailViewModel(
         )
     }
 
+    fun setReminder(at: Long, repeat: String) {
+        _uiState.value = _uiState.value.copy(reminderAt = at, reminderRepeat = repeat)
+    }
+
+    fun clearReminder() {
+        _uiState.value = _uiState.value.copy(reminderAt = null, reminderRepeat = ReminderRepeat.NONE)
+    }
+
     // region Checklist
 
     fun onChecklistItemChanged(itemId: String, text: String) = updateChecklist { items ->
@@ -206,7 +225,9 @@ class NoteDetailViewModel(
         parentId = state.parentId,
         type = state.type,
         // Blank items are editing leftovers, not content.
-        checklist = state.checklist.filter { it.text.isNotBlank() }
+        checklist = state.checklist.filter { it.text.isNotBlank() },
+        reminderAt = state.reminderAt,
+        reminderRepeat = state.reminderRepeat
     )
 
     fun saveNote() {
@@ -230,6 +251,8 @@ class NoteDetailViewModel(
                state.description != state.initialDescription ||
                currentImageName != state.initialImagePath ||
                state.checklist.filter { it.text.isNotBlank() } != state.initialChecklist ||
+               state.reminderAt != state.initialReminderAt ||
+               state.reminderRepeat != state.initialReminderRepeat ||
                (state.isNewNote && hasContent())
     }
 

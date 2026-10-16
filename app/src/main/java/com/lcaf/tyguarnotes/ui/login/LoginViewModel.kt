@@ -179,6 +179,7 @@ class LoginViewModel(
         val newSession = authRepository.currentUserEmail != email
         authRepository.completeSignIn(email)
         if (newSession) Repositories.syncStatus.reset()
+        Repositories.reminders.requestReschedule()
         _uiState.value = _uiState.value.copy(isLoading = false, vaultStep = null, isLoggedIn = true)
     }
 

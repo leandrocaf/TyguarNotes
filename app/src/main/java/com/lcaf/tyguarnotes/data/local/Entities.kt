@@ -8,6 +8,7 @@ import com.lcaf.tyguarnotes.ui.data.DocumentItem
 import com.lcaf.tyguarnotes.ui.data.GalleryItem
 import com.lcaf.tyguarnotes.ui.data.Note
 import com.lcaf.tyguarnotes.ui.data.NoteFolder
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 
 /**
  * Sync bookkeeping shared by every synced entity:
@@ -37,7 +38,9 @@ data class NoteEntity(
     override val deleted: Boolean = false,
     @ColumnInfo(defaultValue = Note.TYPE_TEXT) val type: String = Note.TYPE_TEXT,
     /** Checklist items as JSON (see [ChecklistCodec]); empty for text notes. */
-    @ColumnInfo(defaultValue = "[]") val checklist: String = "[]"
+    @ColumnInfo(defaultValue = "[]") val checklist: String = "[]",
+    val reminderAt: Long? = null,
+    @ColumnInfo(defaultValue = "'none'") val reminderRepeat: String = ReminderRepeat.NONE
 ) : SyncableEntity {
     fun toNote() = Note(
         id = id,
@@ -49,7 +52,9 @@ data class NoteEntity(
         password = password,
         parentId = parentId,
         type = type,
-        checklist = ChecklistCodec.decode(checklist)
+        checklist = ChecklistCodec.decode(checklist),
+        reminderAt = reminderAt,
+        reminderRepeat = reminderRepeat
     )
 }
 

@@ -153,6 +153,15 @@ class ListNotesViewModel(
         }
     }
 
+    /** Sets the reminder of the given notes, or removes it when [reminderAt] is null. */
+    fun setReminder(noteIds: Collection<String>, reminderAt: Long?, reminderRepeat: String) {
+        val email = authRepository.currentUserEmail ?: return
+        viewModelScope.launch {
+            notesRepository.setReminder(email, noteIds, reminderAt, reminderRepeat)
+            loadNotes()
+        }
+    }
+
     suspend fun getAvailableFolders(parentId: String = ""): List<NoteFolder> {
         val email = authRepository.currentUserEmail ?: return emptyList()
         val result = notesRepository.getFolders(email, parentId)

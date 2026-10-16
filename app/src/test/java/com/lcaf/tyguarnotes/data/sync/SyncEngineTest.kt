@@ -10,6 +10,7 @@ import com.lcaf.tyguarnotes.data.repository.LocalGalleryRepository
 import com.lcaf.tyguarnotes.data.repository.LocalNotesRepository
 import com.lcaf.tyguarnotes.ui.data.ChecklistItem
 import com.lcaf.tyguarnotes.ui.data.Note
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -17,6 +18,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -292,5 +294,31 @@ class SyncEngineTest {
         assertTrue(synced.isChecklist)
         assertEquals(items, synced.checklist)
         assertEquals(Note.TYPE_TEXT, tablet.notes.getNote(email, "old").getOrThrow().type)
+    }
+
+    @Test
+    fun reminderTravelsToTheOtherDeviceAndOldRecordsHaveNone() = runTest {
+        phone.notes.saveNote(
+            email,
+            Note(id = "r1", title = "Pagar luz", reminderAt = 1_900_000_000_000, reminderRepeat = ReminderRepeat.MONTHLY),
+            isNew = true
+        ).getOrThrow()
+        val legacyJson = """{"id":"old","title":"Antiga","description":"","image":"","password":"","parentId":"","createdAt":1,"lastModification":1,"updatedAt":1}"""
+        drive.putLegacy("note_old.json", mapOf("type" to "record", "kind" to "note", "id" to "old", "updatedAt" to "1"), legacyJson.toByteArray())
+        phone.sync()
+        tablet.sync()
+
+        val synced = tablet.notes.getNote(email, "r1").getOrThrow()
+        assertEquals(1_900_000_000_000, synced.reminderAt)
+        assertEquals(ReminderRepeat.MONTHLY, synced.reminderRepeat)
+        val old = tablet.notes.getNote(email, "old").getOrThrow()
+        assertNull(old.reminderAt)
+        assertEquals(ReminderRepeat.NONE, old.reminderRepeat)
+
+        // Removing it on one device removes it on the other.
+        tablet.notes.saveNote(email, synced.copy(reminderAt = null, reminderRepeat = ReminderRepeat.NONE), isNew = false).getOrThrow()
+        tablet.sync()
+        phone.sync()
+        assertNull(phone.notes.getNote(email, "r1").getOrThrow().reminderAt)
     }
 }

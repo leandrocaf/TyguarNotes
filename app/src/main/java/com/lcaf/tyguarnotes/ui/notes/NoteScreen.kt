@@ -22,6 +22,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -32,23 +33,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -63,6 +66,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -78,6 +82,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lcaf.tyguarnotes.R
 import com.lcaf.tyguarnotes.ui.components.ConfirmDialog
 import com.lcaf.tyguarnotes.ui.components.LoadingOverlay
+import com.lcaf.tyguarnotes.ui.components.ReminderEditorDialog
+import com.lcaf.tyguarnotes.ui.components.ReminderRow
+import com.lcaf.tyguarnotes.ui.components.SecureAlertDialog
+import com.lcaf.tyguarnotes.ui.components.rememberReminderPermissionRequester
 import com.lcaf.tyguarnotes.ui.data.Note
 import com.lcaf.tyguarnotes.ui.util.AppLockGrace
 
@@ -96,6 +104,7 @@ fun NoteScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showReminderDialog by remember { mutableStateOf(false) }
     var clickedUrl by remember { mutableStateOf<String?>(null) }
 
     val view = androidx.compose.ui.platform.LocalView.current
@@ -115,6 +124,8 @@ fun NoteScreen(
         navigateBack()
     }
 
+    val ensureReminderPermissions = rememberReminderPermissionRequester()
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -130,11 +141,29 @@ fun NoteScreen(
         }
     }
 
+    val pickImage = {
+        AppLockGrace.beginExternalTask()
+        imagePickerLauncher.launch("image/*")
+    }
+
     LaunchedEffect(noteId) {
         viewModel.loadNote(noteId, parentId, noteType)
         if (initialDescription != null) {
             viewModel.onDescriptionChanged(initialDescription)
         }
+    }
+
+    if (showReminderDialog) {
+        ReminderEditorDialog(
+            initialAt = uiState.reminderAt,
+            initialRepeat = uiState.reminderRepeat,
+            onConfirm = { at, repeat ->
+                viewModel.setReminder(at, repeat)
+                showReminderDialog = false
+                ensureReminderPermissions()
+            },
+            onDismiss = { showReminderDialog = false }
+        )
     }
 
     if (showDeleteDialog) {
@@ -235,8 +264,20 @@ fun NoteScreen(
                         }
                     },
                     actions = {
+                        // Delete goes first, away from the screen edge where thumbs land, and save is last.
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+                        }
+                        // Picking a new image also replaces the current one.
+                        IconButton(onClick = pickImage) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = stringResource(R.string.select_image))
+                        }
+                        // Going back saves too; this is the explicit way to do it.
+                        IconButton(onClick = { navigateBack() }) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = stringResource(if (uiState.isNewNote) R.string.create_note else R.string.update_note)
+                            )
                         }
                     }
                 )
@@ -256,7 +297,16 @@ fun NoteScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ReminderRow(
+                    reminderAt = uiState.reminderAt,
+                    repeat = uiState.reminderRepeat,
+                    onClick = { showReminderDialog = true },
+                    onClear = viewModel::clearReminder
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (uiState.isChecklist) {
                     ChecklistEditor(
@@ -338,54 +388,38 @@ fun NoteScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Image section
-                if (uiState.imageBitmap != null) {
-                    Image(
-                        bitmap = uiState.imageBitmap!!.asImageBitmap(),
-                        contentDescription = "Note image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clickable {
-                                uiState.imageBytes?.let { onViewImage(it) }
-                            },
-                        contentScale = ContentScale.Crop
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = { viewModel.removeImage() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.remove_image))
+                // Image, with a small badge to remove it (adding one is an icon in the top bar)
+                val bitmap = uiState.imageBitmap
+                if (bitmap != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Note image",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { uiState.imageBytes?.let { onViewImage(it) } },
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .clickable { viewModel.removeImage() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.remove_image),
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
-                } else {
-                    Button(
-                        onClick = {
-                            AppLockGrace.beginExternalTask()
-                            imagePickerLauncher.launch("image/*")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.select_image))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        viewModel.saveAndGoBack { navigateBack() }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        if (uiState.isNewNote) stringResource(R.string.create_note)
-                        else stringResource(R.string.update_note)
-                    )
                 }
             }
         }

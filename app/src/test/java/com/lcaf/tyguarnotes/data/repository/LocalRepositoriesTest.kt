@@ -8,11 +8,13 @@ import com.lcaf.tyguarnotes.ui.data.ChecklistItem
 import com.lcaf.tyguarnotes.ui.data.DocumentItem
 import com.lcaf.tyguarnotes.ui.data.GalleryItem
 import com.lcaf.tyguarnotes.ui.data.Note
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -197,6 +199,94 @@ class LocalRepositoriesTest {
         notes.saveNote(alice, saved.copy(checklist = updated), isNew = false).getOrThrow()
         assertEquals(updated, notes.getNote(alice, "c1").getOrThrow().checklist)
         assertEquals(Note.TYPE_TEXT, notes.saveNote(alice, Note(id = "t1"), isNew = true).let { notes.getNote(alice, "t1").getOrThrow().type })
+    }
+
+    @Test
+    fun reminderIsSavedChangedAndCleared() = runTest {
+        notes.saveNote(alice, Note(id = "r1", title = "Remédio", reminderAt = 1_800_000_000_000, reminderRepeat = ReminderRepeat.DAILY), isNew = true).getOrThrow()
+        val saved = notes.getNote(alice, "r1").getOrThrow()
+        assertEquals(1_800_000_000_000, saved.reminderAt)
+        assertEquals(ReminderRepeat.DAILY, saved.reminderRepeat)
+
+        notes.saveNote(alice, saved.copy(reminderAt = 1_900_000_000_000, reminderRepeat = ReminderRepeat.WEEKLY), isNew = false).getOrThrow()
+        assertEquals(ReminderRepeat.WEEKLY, notes.getNote(alice, "r1").getOrThrow().reminderRepeat)
+
+        notes.saveNote(alice, saved.copy(reminderAt = null, reminderRepeat = ReminderRepeat.NONE), isNew = false).getOrThrow()
+        val cleared = notes.getNote(alice, "r1").getOrThrow()
+        assertNull(cleared.reminderAt)
+        assertEquals(ReminderRepeat.NONE, cleared.reminderRepeat)
+    }
+
+    @Test
+    fun reminderCanBeSetOrClearedOnSeveralNotesWithoutEditingThem() = runTest {
+        listOf("a", "b", "c").forEach { notes.saveNote(alice, Note(id = it, title = "Nota $it", description = "texto $it"), isNew = true).getOrThrow() }
+        val before = notes.getNote(alice, "a").getOrThrow()
+        stores.getValue(alice).db.noteDao().markSynced("a", stores.getValue(alice).db.noteDao().get("a")!!.updatedAt)
+
+        notes.setReminder(alice, listOf("a", "b"), 1_900_000_000_000, ReminderRepeat.DAILY).getOrThrow()
+
+        val a = notes.getNote(alice, "a").getOrThrow()
+        assertEquals(1_900_000_000_000, a.reminderAt)
+        assertEquals(ReminderRepeat.DAILY, a.reminderRepeat)
+        assertEquals(1_900_000_000_000, notes.getNote(alice, "b").getOrThrow().reminderAt)
+        assertNull(notes.getNote(alice, "c").getOrThrow().reminderAt)
+        // Only the reminder changed: content and "last modified" are as they were, and it will sync.
+        assertEquals(before.title, a.title)
+        assertEquals(before.description, a.description)
+        assertEquals(before.lastModification, a.lastModification)
+        assertTrue(stores.getValue(alice).db.noteDao().get("a")!!.pendingSync)
+
+        // Clearing also resets the repeat, whatever was passed.
+        notes.setReminder(alice, listOf("a", "b"), null, ReminderRepeat.WEEKLY).getOrThrow()
+        val cleared = notes.getNote(alice, "a").getOrThrow()
+        assertNull(cleared.reminderAt)
+        assertEquals(ReminderRepeat.NONE, cleared.reminderRepeat)
+    }
+
+    @Test
+    fun settingAReminderOnAMissingNoteFails() = runTest {
+        assertTrue(notes.setReminder(alice, listOf("missing"), 1_900_000_000_000, ReminderRepeat.NONE).isFailure)
+    }
+
+    @Test
+    fun updatingANoteNeverMovesItOutOfItsFolder() = runTest {
+        notes.createFolder(alice, "Sec").getOrThrow()
+        val folder = notes.getFolders(alice).getOrThrow().single()
+        notes.saveNote(alice, Note(id = "n1", title = "Dentro", parentId = folder.id), isNew = true).getOrThrow()
+
+        // A caller that does not know the folder (parentId left empty) must not move it.
+        notes.saveNote(alice, Note(id = "n1", title = "Editada", parentId = ""), isNew = false).getOrThrow()
+
+        val note = notes.getNote(alice, "n1").getOrThrow()
+        assertEquals("Editada", note.title)
+        assertEquals(folder.id, note.parentId)
+
+        // Moving stays possible, through its own operation.
+        notes.moveNoteToFolder(alice, "n1", "").getOrThrow()
+        assertEquals("", notes.getNote(alice, "n1").getOrThrow().parentId)
+    }
+
+    @Test
+    fun noteIsProtectedByItsOwnPasswordOrAnyFolderAboveIt() = runTest {
+        notes.createFolder(alice, "Cofre").getOrThrow()
+        val vault = notes.getFolders(alice).getOrThrow().single()
+        notes.createFolder(alice, "Dentro", vault.id).getOrThrow()
+        val inner = notes.getFolders(alice, vault.id).getOrThrow().single()
+        notes.saveNote(alice, Note(id = "free"), isNew = true).getOrThrow()
+        notes.saveNote(alice, Note(id = "deep", parentId = inner.id), isNew = true).getOrThrow()
+        notes.saveNote(alice, Note(id = "own"), isNew = true).getOrThrow()
+        notes.lockNote(alice, "own", "1234").getOrThrow()
+
+        assertFalse(notes.isNoteProtected(alice, "free"))
+        assertFalse(notes.isNoteProtected(alice, "deep"))
+        assertFalse(notes.isNoteProtected(alice, "missing"))
+        assertTrue(notes.isNoteProtected(alice, "own"))
+
+        notes.lockFolder(alice, vault.id, "9999").getOrThrow()
+        assertTrue(notes.isNoteProtected(alice, "deep"))
+        assertFalse(notes.isNoteProtected(alice, "free"))
+        notes.unlockFolder(alice, vault.id).getOrThrow()
+        assertFalse(notes.isNoteProtected(alice, "deep"))
     }
 
     @Test

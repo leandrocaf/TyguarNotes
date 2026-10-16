@@ -2,6 +2,7 @@ package com.lcaf.tyguarnotes.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,10 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -33,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lcaf.tyguarnotes.R
 import com.lcaf.tyguarnotes.ui.data.Note
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,6 +51,10 @@ fun NoteCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    // Only the reminder time is highlighted, below the title. The card itself must not change
+    // (a frame or tint would read as "selected"). An overdue one-time reminder turns red.
+    val reminder = note.reminderAt?.let { reminderDisplay(it, note.reminderRepeat) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -74,6 +84,15 @@ fun NoteCard(
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface
             )
+
+            if (reminder != null) {
+                ReminderTag(
+                    time = formatReminderTime(reminder.timeMillis, "dd/MM HH:mm"),
+                    repeats = note.reminderRepeat != ReminderRepeat.NONE,
+                    color = if (reminder.passed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             if (note.isChecklist && note.password.isEmpty()) {
                 ChecklistPreview(note)
@@ -165,3 +184,22 @@ private fun ChecklistPreview(note: Note) {
 
 private const val PREVIEW_ITEMS = 4
 
+/** Small soft tag with a bell, the next time and a repeat mark; the only thing that marks a card as having a reminder. */
+@Composable
+private fun ReminderTag(time: String, repeats: Boolean, color: Color, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.16f))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Alarm, contentDescription = null, modifier = Modifier.size(12.dp), tint = color)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = time, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color)
+        if (repeats) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(Icons.Default.Repeat, contentDescription = null, modifier = Modifier.size(11.dp), tint = color)
+        }
+    }
+}

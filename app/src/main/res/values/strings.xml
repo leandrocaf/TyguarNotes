@@ -163,4 +163,24 @@
         <item quantity="one">+%1$d item</item>
         <item quantity="other">+%1$d itens</item>
     </plurals>
+    <string name="reminder_channel_name">Lembretes</string>
+    <string name="reminder_channel_description">Avisos das notas que têm lembrete</string>
+    <string name="reminder_notification_generic_title">Você tem um lembrete</string>
+    <string name="reminder_notification_text">Lembrete</string>
+    <string name="reminder_notification_protected_text">Abra o app para ver.</string>
+    <string name="reminder_title">Lembrete</string>
+    <string name="reminder_add">Adicionar lembrete</string>
+    <string name="reminder_remove">Remover lembrete</string>
+    <string name="reminder_passed">Lembrete passado</string>
+    <string name="reminder_must_be_future">Escolha uma data e hora no futuro.</string>
+    <string name="reminder_repeat_none">Não repetir</string>
+    <string name="reminder_repeat_daily">Diariamente</string>
+    <string name="reminder_repeat_weekly">Semanalmente</string>
+    <string name="reminder_repeat_monthly">Mensalmente</string>
+    <string name="reminder_notifications_denied">As notificações estão bloqueadas, então este lembrete não vai avisar. Ative-as nas configurações do app.</string>
+    <string name="reminder_exact_alarm_title">Alarmes e lembretes</string>
+    <string name="reminder_exact_alarm_message">Para o lembrete tocar na hora certa, permita \"Alarmes e lembretes\" para o TyguarNotes. Sem isso, ele pode atrasar alguns minutos.</string>
+    <string name="reminder_exact_alarm_allow">Permitir</string>
+    <string name="reminder_exact_alarm_later">Agora não</string>
+    <string name="selection_reminder_folders">Pastas não têm lembrete. Desmarque as pastas para definir o lembrete das notas.</string>
 </resources>

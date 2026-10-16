@@ -8,6 +8,7 @@ import com.lcaf.tyguarnotes.data.local.NoteFolderEntity
 import com.lcaf.tyguarnotes.data.local.SyncableEntity
 import com.lcaf.tyguarnotes.data.local.TyguarDatabase
 import com.lcaf.tyguarnotes.ui.data.Note
+import com.lcaf.tyguarnotes.ui.data.ReminderRepeat
 import org.json.JSONObject
 
 /** How one local table is read, written and serialized for sync. */
@@ -63,6 +64,8 @@ sealed class SyncTable<E : SyncableEntity>(val kind: String) {
             .put("updatedAt", entity.updatedAt)
             .put("type", entity.type)
             .put("checklist", ChecklistCodec.toJson(ChecklistCodec.decode(entity.checklist)))
+            .put("reminderAt", entity.reminderAt ?: JSONObject.NULL)
+            .put("reminderRepeat", entity.reminderRepeat)
 
         override fun fromJson(json: JSONObject) = NoteEntity(
             id = json.getString("id"),
@@ -77,7 +80,10 @@ sealed class SyncTable<E : SyncableEntity>(val kind: String) {
             pendingSync = false,
             // Records written before checklists existed are text notes.
             type = json.optString("type").ifEmpty { Note.TYPE_TEXT },
-            checklist = ChecklistCodec.encode(ChecklistCodec.fromJson(json.optJSONArray("checklist")))
+            checklist = ChecklistCodec.encode(ChecklistCodec.fromJson(json.optJSONArray("checklist"))),
+            // Records written before reminders existed have neither field.
+            reminderAt = if (json.has("reminderAt") && !json.isNull("reminderAt")) json.getLong("reminderAt") else null,
+            reminderRepeat = json.optString("reminderRepeat").ifEmpty { ReminderRepeat.NONE }
         )
     }
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.lcaf.tyguarnotes.R
+import com.lcaf.tyguarnotes.data.reminders.AndroidReminderNotifier
 import com.lcaf.tyguarnotes.data.repository.Repositories
 import com.lcaf.tyguarnotes.data.repository.SettingsRepository
 import com.lcaf.tyguarnotes.ui.components.LocalAppLocked
@@ -59,6 +60,8 @@ class MainActivity : FragmentActivity() {
     private var sharedText: String? = null
     private var sharedImageBytes: ByteArray? by mutableStateOf(null)
     private var sharedImageUri: Uri? by mutableStateOf(null)
+    // Note to open because its reminder notification was tapped; consumed by the navigation.
+    private var openNoteId: String? by mutableStateOf(null)
     private var sharedDocBytes: ByteArray? by mutableStateOf(null)
     private var sharedDocName: String? by mutableStateOf(null)
     private var sharedDocMimeType: String? by mutableStateOf(null)
@@ -76,6 +79,8 @@ class MainActivity : FragmentActivity() {
         }
         settingsRepository = SettingsRepository(this)
         Repositories.init(applicationContext)
+        // Alarms are lost on force-stop and some updates; opening the app is a cheap time to re-arm them.
+        Repositories.reminders.requestReschedule()
         File(cacheDir, Constants.SHARED_DOCS_DIR).deleteRecursively()
         handleIncomingIntent(intent)
         initBiometric()
@@ -99,6 +104,8 @@ class MainActivity : FragmentActivity() {
                                 sharedText = sharedText,
                                 sharedImageBytes = sharedImageBytes,
                                 sharedImageUri = sharedImageUri,
+                                openNoteId = openNoteId,
+                                onOpenNoteConsumed = { openNoteId = null },
                                 onSharedImageConsumed = {
                                     sharedImageBytes = null
                                     sharedImageUri = null
@@ -155,6 +162,7 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun handleIncomingIntent(intent: Intent?) {
+        intent?.getStringExtra(AndroidReminderNotifier.EXTRA_OPEN_NOTE_ID)?.let { openNoteId = it }
         if (intent?.action == Intent.ACTION_SEND) {
             when {
                 intent.type == "text/plain" -> {
