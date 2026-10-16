@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -21,8 +22,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.lcaf.tyguarnotes.R
 import com.lcaf.tyguarnotes.data.repository.Repositories
 import com.lcaf.tyguarnotes.data.repository.SettingsRepository
+import com.lcaf.tyguarnotes.data.repository.UnlockStep
+import com.lcaf.tyguarnotes.ui.components.PinPadScreen
 import com.lcaf.tyguarnotes.ui.data.GalleryItem
 import com.lcaf.tyguarnotes.ui.data.Note
 import com.lcaf.tyguarnotes.ui.documents.DocumentsScreen
@@ -119,15 +123,41 @@ fun AppNavigation(
                 }
             }
 
-            // A tapped reminder opens its note, unless the note (or its folder) has a PIN: that
-            // PIN is asked in the list and a link must not skip it.
+            // A tapped reminder opens its note. A link must not skip the PINs, so every protected
+            // folder on the way and the note itself are asked first, outermost first.
+            var pendingUnlock by remember { mutableStateOf<PendingNoteUnlock?>(null) }
             LaunchedEffect(openNoteId) {
                 val noteId = openNoteId ?: return@LaunchedEffect
                 val email = Repositories.auth.currentUserEmail
-                val note = email?.let { Repositories.notes.getNote(it, noteId).getOrNull() }
-                val protected = email != null && Repositories.notes.isNoteProtected(email, noteId)
-                if (note != null && !protected) navController.navigate(Routes.noteDetail(noteId))
+                if (email != null && Repositories.notes.getNote(email, noteId).isSuccess) {
+                    val steps = Repositories.notes.getUnlockSteps(email, noteId)
+                    if (steps.isEmpty()) navController.navigate(Routes.noteDetail(noteId))
+                    else pendingUnlock = PendingNoteUnlock(noteId, steps)
+                }
                 onOpenNoteConsumed()
+            }
+
+            pendingUnlock?.let { unlock ->
+                val step = unlock.steps[unlock.index]
+                val wrongPinText = stringResource(R.string.wrong_password)
+                var pinError by remember(unlock.index) { mutableStateOf<String?>(null) }
+                val action = stringResource(if (step.isFolder) R.string.unlock_folder else R.string.unlock_note)
+                PinPadScreen(
+                    title = if (step.name.isBlank()) action else "$action - ${step.name}",
+                    errorMessage = pinError,
+                    onConfirm = { entered ->
+                        when {
+                            entered != step.pin -> pinError = wrongPinText
+                            unlock.index + 1 < unlock.steps.size -> pendingUnlock = unlock.copy(index = unlock.index + 1)
+                            else -> {
+                                pendingUnlock = null
+                                navController.navigate(Routes.noteDetail(unlock.noteId))
+                            }
+                        }
+                    },
+                    onBack = { pendingUnlock = null }
+                )
+                return@composable
             }
 
             ListNotesScreen(
@@ -342,3 +372,6 @@ fun AppNavigation(
         }
     }
 }
+
+/** A note to open once every PIN on the way to it ([index] is the one being asked) has been entered. */
+private data class PendingNoteUnlock(val noteId: String, val steps: List<UnlockStep>, val index: Int = 0)

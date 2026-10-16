@@ -267,6 +267,41 @@ class LocalRepositoriesTest {
     }
 
     @Test
+    fun unlockStepsListEveryPinOnTheWayOutermostFirstThenTheNote() = runTest {
+        notes.createFolder(alice, "Externa").getOrThrow()
+        val outer = notes.getFolders(alice).getOrThrow().single()
+        notes.createFolder(alice, "Meio", outer.id).getOrThrow()
+        val middle = notes.getFolders(alice, outer.id).getOrThrow().single()
+        notes.createFolder(alice, "Interna", middle.id).getOrThrow()
+        val inner = notes.getFolders(alice, middle.id).getOrThrow().single()
+        notes.saveNote(alice, Note(id = "free", title = "Livre"), isNew = true).getOrThrow()
+        notes.saveNote(alice, Note(id = "deep", title = "Funda", parentId = inner.id), isNew = true).getOrThrow()
+
+        assertTrue(notes.getUnlockSteps(alice, "free").isEmpty())
+        assertTrue(notes.getUnlockSteps(alice, "deep").isEmpty())
+        assertTrue(notes.getUnlockSteps(alice, "missing").isEmpty())
+
+        // Unprotected folders in between are not asked.
+        notes.lockFolder(alice, outer.id, "1111").getOrThrow()
+        notes.lockFolder(alice, inner.id, "3333").getOrThrow()
+        assertEquals(
+            listOf(UnlockStep("Externa", "1111", true), UnlockStep("Interna", "3333", true)),
+            notes.getUnlockSteps(alice, "deep")
+        )
+
+        notes.lockNote(alice, "deep", "9999").getOrThrow()
+        assertEquals(
+            listOf(UnlockStep("Externa", "1111", true), UnlockStep("Interna", "3333", true), UnlockStep("Funda", "9999", false)),
+            notes.getUnlockSteps(alice, "deep")
+        )
+
+        notes.lockNote(alice, "free", "5555").getOrThrow()
+        assertEquals(listOf(UnlockStep("Livre", "5555", false)), notes.getUnlockSteps(alice, "free"))
+        // Both views of "protected" agree.
+        assertTrue(notes.isNoteProtected(alice, "deep") && notes.isNoteProtected(alice, "free"))
+    }
+
+    @Test
     fun noteIsProtectedByItsOwnPasswordOrAnyFolderAboveIt() = runTest {
         notes.createFolder(alice, "Cofre").getOrThrow()
         val vault = notes.getFolders(alice).getOrThrow().single()

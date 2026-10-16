@@ -99,6 +99,23 @@ class LocalNotesRepository(
         }
     }
 
+    override suspend fun getUnlockSteps(userEmail: String, noteId: String): List<UnlockStep> {
+        val note = notes(userEmail).get(noteId) ?: return emptyList()
+        val folderDao = folders(userEmail)
+        val steps = mutableListOf<UnlockStep>()
+        val visited = mutableSetOf<String>()
+        var id = note.parentId
+        // visited guards against a corrupt parent cycle.
+        while (id.isNotEmpty() && visited.add(id)) {
+            val folder = folderDao.get(id) ?: break
+            if (folder.password.isNotEmpty()) steps += UnlockStep(folder.name, folder.password, isFolder = true)
+            id = folder.parentId
+        }
+        steps.reverse()
+        if (note.password.isNotEmpty()) steps += UnlockStep(note.title, note.password, isFolder = false)
+        return steps
+    }
+
     override suspend fun isNoteProtected(userEmail: String, noteId: String): Boolean {
         val note = notes(userEmail).get(noteId) ?: return false
         return storeFor(userEmail).db.isNoteProtected(note)

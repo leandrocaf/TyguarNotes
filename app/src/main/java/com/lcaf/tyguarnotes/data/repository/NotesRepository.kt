@@ -18,6 +18,12 @@ interface NotesRepository {
     /** Whether the note, or any folder above it, has a password. */
     suspend fun isNoteProtected(userEmail: String, noteId: String): Boolean
 
+    /**
+     * The PINs to ask before the note may be opened from outside the list (e.g. a reminder),
+     * outermost folder first and the note itself last; empty when it is not protected.
+     */
+    suspend fun getUnlockSteps(userEmail: String, noteId: String): List<UnlockStep>
+
     suspend fun getFolders(userEmail: String, parentId: String = ""): Result<List<NoteFolder>>
     suspend fun createFolder(userEmail: String, name: String, parentId: String = ""): Result<Unit>
     suspend fun deleteFolder(userEmail: String, folder: NoteFolder): Result<Unit>
@@ -28,3 +34,6 @@ interface NotesRepository {
     suspend fun uploadImage(userEmail: String, noteId: String, imageBytes: ByteArray): Result<Unit>
     suspend fun downloadImage(userEmail: String, imagePath: String): Result<ByteArray>
 }
+
+/** One PIN to ask: a protected folder on the way to the note, or the note itself. */
+data class UnlockStep(val name: String, val pin: String, val isFolder: Boolean)

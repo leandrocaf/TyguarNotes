@@ -17,7 +17,7 @@ import com.lcaf.tyguarnotes.ui.data.Note
 import com.lcaf.tyguarnotes.ui.notes.MainActivity
 
 interface ReminderNotifier {
-    /** Shows the reminder; the title and a direct link to the note only if the note is not protected. */
+    /** Shows the reminder; the title only if the note is not protected. Tapping it always leads to the note. */
     suspend fun show(note: Note, isProtected: Boolean)
 }
 
@@ -40,7 +40,7 @@ class AndroidReminderNotifier(private val context: Context) : ReminderNotifier {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .setContentIntent(openIntent(note, isProtected))
+            .setContentIntent(openIntent(note))
             // On a secure lock screen only the generic version is shown, whatever the note says.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
@@ -69,13 +69,14 @@ class AndroidReminderNotifier(private val context: Context) : ReminderNotifier {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    // Protected notes only open the app: their PIN is asked in the list, never skipped by a link.
-    private fun openIntent(note: Note, isProtected: Boolean): PendingIntent {
+    // The intent carries only the note id, not the title. Whether PINs are needed is decided when
+    // the notification is tapped, so a link never skips them and a later lock still counts.
+    private fun openIntent(note: Note): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             // The data URI keeps each note's PendingIntent (and its extras) separate.
             .setData(Uri.parse("tyguar://open/${Uri.encode(note.id)}"))
-        if (!isProtected) intent.putExtra(EXTRA_OPEN_NOTE_ID, note.id)
+            .putExtra(EXTRA_OPEN_NOTE_ID, note.id)
         return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 

@@ -9,7 +9,6 @@ import com.lcaf.tyguarnotes.R
 import com.lcaf.tyguarnotes.ui.data.Note
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -44,13 +43,14 @@ class AndroidReminderNotifierTest {
     }
 
     @Test
-    fun aProtectedNoteShowsOnlyAGenericTitleAndNeverLinksToTheNote() = runTest {
+    fun aProtectedNoteHidesItsTitleButStillLeadsToTheNoteWhereThePinIsAsked() = runTest {
         notifier.show(Note(id = "n2", title = "Senha do banco"), isProtected = true)
 
         val notification = posted()
         assertEquals(generic, notification.title())
         assertEquals(app.getString(R.string.reminder_notification_protected_text), notification.extras.getString(Notification.EXTRA_TEXT))
-        assertNull(notification.openedNoteId())
+        // Only the id travels in the tap; the app asks the PINs before showing the note.
+        assertEquals("n2", notification.openedNoteId())
         assertTrue(notification.extras.keySet().none { notification.extras.get(it)?.toString()?.contains("Senha do banco") == true })
     }
 
